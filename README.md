@@ -1,6 +1,6 @@
 # BarebonesDB
 
-![BarebonesDB logo](https://i.imgur.com/fdOrgps.png)
+![BarebonesDB logo][https://i.imgur.com/fdOrgps.png]
 
 A simple, extremely lightweight, portable NoSQL style barebone DBMS purely made in Python 3.8 with no additional dependencies (atleast for now). 
 Suitable for simple use cases where you need NoSQL style simple I/O. 
