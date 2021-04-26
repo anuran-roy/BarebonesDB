@@ -27,8 +27,14 @@ What do I need to make it work?
 
 How do I work with it?
 > Here's how:
-1. To add data to your DB: `add <YOUR DICTIONARY>`. Example: `add {"name": "Anuran", "Github": "@anuran-roy"}`
-2. To get data from yout DB: `get {"must": {<The dictionary of fields that you MUST want>}, "not": {{<The dictionary of fields that you DON'T want>}}}`. 
+1. To add data to your DB: 
+`add <YOUR DICTIONARY>`. 
+
+Example: `add {"name": "Anuran", "Github": "@anuran-roy"}`
+
+2. To get data from yout DB: 
+`get {"must": {<The dictionary of fields that you MUST want>}, "not": {{<The dictionary of fields that you DON'T want>}}}`. 
+
 Example: `{"must": {"name": "Anuran"}, "not": {"Github": "@anuran-roy"}}` will give output "Not found" because there is no entry where name is Anuran and username is not "@anuran-roy" (until you specify it.)
 	
 A few tips:
