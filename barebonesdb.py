@@ -4,8 +4,8 @@ import time
 
 dct = {}
 queue = []
-# DB = "./state_db.bbdb"  # For deployment
-DB = "./state_db_test.bbdb"  # For testing
+# DB = "./state_db.json"  # For deployment
+DB = "./state_db_test.json"  # For testing
 
 f = 0
 
