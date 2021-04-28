@@ -42,7 +42,7 @@ P.S: You can access the FAQ section from the BarebonesDB CLI when executing bare
 
 ### Date: 29-4-2021
 
-1. I have made a lot of changes to the architecture of BarebonesDB. Now the Create an object (say, ob) and initialize the BarebonesDB class. 
+1. I have made a lot of changes to the architecture of BarebonesDB. Now you need to create an object (say, ob) and initialize the BarebonesDB class. 
 
 Example Syntax:
 
