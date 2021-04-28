@@ -35,27 +35,3 @@ A few tips:
 > Don't make your dictionary too "deep", i.e, don't nest objects too much. It will slow down the lookup speed.
 
 P.S: You can access the FAQ section from the BarebonesDB CLI when executing barebonesdb.py manually. Type `about` and you'll get it.
-
-## **UPDATE** 
-
-### Date: 29-4-2021
-
-1. I have made a lot of changes to the architecture of BarebonesDB. Now the Create an object (say, ob) and initialize the BarebonesDB class. 
-
-Example Syntax:
-
-`ob = BarebonesDB(on= "existing", name="db1", createTest=True)`
-
-The above line initializes an instance of BarebonesDB class, with the flag to open an "existing" database of name "db1" on testing mode.
-
-2. Added a caching function of custom size. 
-
-Example syntax: 
-
- `ob = BarebonesDB(on= "existing", name="db1", createTest=True, cacheSize=50)`
-
-  The above line initializes an instance of BarebonesDB class, with the flag to open an "existing" database of name "db1" on testing mode, and cache size of 50 elements.
-
-  YES, that's the fun part! You can now have variable cache sizes for different purposes!
-
-  **For a simple test run, you can run execute test.py**
