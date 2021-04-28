@@ -48,7 +48,7 @@ Example Syntax:
 
 `ob = BarebonesDB(on= "existing", name="db1", createTest=True)`
 
-The above line initializes an instance of BarebonesDB class, with the flag to open an "existing" database of name "db1" on testing mode.
+The above line initializes an instance of BarebonesDB class, with the flag to open an "existing" database of name "db1" on testing mode. In testing mode, a separate DB is created, so that you can carry out your testing there. The name of the test database is of the format _<database_name>_test.json
 
 2. Added a caching function of custom size. 
 
