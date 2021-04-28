@@ -1,250 +1,328 @@
 import json
 from datetime import datetime
 import time
-
-dct = {}
-queue = []
-# DB = "./state_db.json"  # For deployment
-DB = "./state_db_test.json"  # For testing
-
-f = 0
+import os
 
 
-def about():
-    abt = open("about.txt").readlines()
-    for a in abt:
-        print(a)
+class DBNameUnavailable(Exception):
+    pass
 
 
-def writest():
-    try:
-        global DB
-        file = open(DB, "a")
-        global queue
-        for i in range(len(queue)):
-            json.dump(queue[i], file)
-            file.write("\n")
-        print("Writing Queued State Object... OK")
-        queue = []
-    except Exception as wt:
-        print(f"Failed to write Queued State Object to DB. Details: {wt}")
+class BarebonesDB:
 
-
-def threadqueue(t):
-    '''Add the state to the thread queue'''
-    global queue
-    global f
-    try:
-        for i in queue:
-            if i['module'] == t['module']:
-                if i['timestamp'] == t['timestamp']:
-                    f += 1
-        if f > 0:
-            print(f"{f} conflicting operation(s) from same module ", end="")
-            print("at same time. Waiting 0.25s for each")
-            time.sleep(0.25)
-            queue.append(t)
-        else:
-            queue.append(t)
-        print("State Object queuing... OK ")
-    except Exception as tq:
-        print(f"Failed to queue State Object. Error details:{tq}")
-
-
-def makest(d):
-    global dct
-    dct = d
-
-    try:
-        dct['timestamp'] = str(datetime.now())
-        dct['fields'] = list(dct.keys())
-        print("State Object Creation... OK")
-        threadqueue(dct)
-        if __name__ != "__main__":
-            return dct
-    except Exception as mke:
-        print(f"Failed to create state object. Error details:{mke}")
-
-
-def readst(module=None, fromlast=1):
-    global DB
-    file = open(DB, "r")
-    if module == "*":
-        print(f"Printing {fromlast} most recent entries to the database:\n")
-        for i in file.readlines()[-1*fromlast:]:
-            print(json.dumps(json.loads(i), indent=4))
-            print()
-        return None
-    else:
-        f = 0
-        for i in file.readlines()[::-1]:
-            dump = json.loads(i)
-            if dump['module'] == module and f == fromlast-1:
-                if __name__ == '__main__':
-                    print(json.dumps(json.loads(i), indent=4))
-                return dump
-            elif dump['module'] == module and f < fromlast-1:
-                f += 1
-        if __name__ == '__main__':
-            print("Not Found")
-        return "Not Found."
-
-
-def search(criteria, mode="get"):
-    try:
-        q = open(DB, "r").readlines()
-        q2 = []
-        cf = list(criteria.keys())
-
-        must_keys = (criteria["must"].keys()) if "must" in cf else []
-        # may_keys = (criteria["may"].keys()) if "may" in cf else []
-        not_keys = (criteria["not"].keys()) if "not" in cf else []
-
-        line2 = []
-        c = 0
-        c2 = 0
-        for i in range(len(q)):
-            qk = list(json.loads(q[i]).keys()) if q[i] != "\n" else []
-            if set(not_keys).issubset(set(qk)):
-                for nt in not_keys:
-                    if criteria["not"][nt] == json.loads(q[i])[nt]:
-                        c += 1
-                if c == 0:
-                    q2.append(q[i])
-            c = 0
-
-        i = 0
-        for i in range(len(q2)):
-            qk2 = list(json.loads(q2[i]).keys())
-
-            if set(must_keys).issubset(set(qk2)):
-                for mst in must_keys:
-                    if criteria["must"][mst] == json.loads(q2[i])[mst]:
-                        c2 += 1
-                if c2 == len(must_keys):
-
-                    if mode == "get":
-                        line2.append(json.loads(q2[i]))
-                    elif mode == "delete":
-                        line2.append(i)
-                c2 = 0
-        if len(line2) > 0:
-            for l in line2:
-                if mode == "get":
-                    print(json.dumps(l, indent=4))
-                # elif mode == "delete":
-                #     print(l)
-            if mode == "delete":
-                return line2
-        else:
-            print("Not found.")
-            return []
-    except Exception as ex:
-        print(f"An error occured while getting must fields. Details: {ex}")
-
-
-def remove(criteria):
-    lef = open(DB, "r").readlines()
-    entries_affected = [lef[i] for i in search(criteria, mode="delete")]
-    if __name__ == "__main__":
-        print(f"Deleting {len(entries_affected)} entries. Proceed? [Y/N]", end=" ")
-    resp = input() if __name__ == "__main__" else "Y"
-    if resp == "Y" or resp == "y":
-        e = list(set(lef) - set(entries_affected))
-        ef = open(DB, "w")
+    def __init__(self, on="new", name=None, createTest=True, cacheSize=100):
+        self.dct = {}
+        self.queue = []
+        self.cache = {}
+        self.cacheSize = cacheSize
+        self.f = 0
+        self.name = name
         try:
-            for i in e:
-                ef.writelines(i)
+            if on == "new":
+                if self.name is None:
+                    self.name = f'db-{datetime.now().strftime("%H-%M-%S-%d-%m-%Y")}'
+                self.nm = f"{os.path.realpath('.')}\\{self.name}"
+                os.mkdir(self.nm)
+                if createTest:
+                    self.DB = f"{self.nm}\\{self.name}\\{self.name}_test.json"
+                else:
+                    self.DB = f"{self.nm}\\{self.name}\\{self.name}.json"
+                file = open(self.DB, "w")
+                file.close()
+            elif on.lower().strip() == "existing" and len(self.name.strip()) > 0:
+                if createTest:
+                    self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}_test.json"
+                else:
+                    self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}.json"
+                if __name__ == "__main__":
+                    print(f"DB instance is now pointing to {self.DB}")
+            elif len(self.name.strip()) == 0:
+                raise DBNameUnavailable
+        except DBNameUnavailable:
+            print("Please specify name of an existing DB. ")
+        except Exception as e:
+            print(f"FATAL ERROR during initialization! Error details: {e}")
 
+    def about(self):
+        abt = open("about.txt").readlines()
+        for a in abt:
+            print(a)
+
+    def doCache(self, entry):
+        if "".join(list(entry.keys())) not in list(self.cache.keys()):
+            self.cache["".join(list(entry.keys()))] = entry["".join(list(entry.keys()))]
+        if len(list(self.cache.keys())) > self.cacheSize:
+            self.cache.pop(list(self.cache.keys())[0])
+
+    def writest(self):
+        try:
+            file = open(self.DB, "a")
+            for i in range(len(self.queue)):
+                json.dump(self.queue[i], file)
+                file.write("\n")
+            print("Writing Queued State Object... OK")
+            self.queue = []
+        except Exception as wt:
+            print(f"Failed to write Queued State Object to DB. Details: {wt}")
+
+    def threadqueue(self, t):
+        '''Add the state to the thread queue'''
+        try:
+            for i in self.queue:
+                if i['module'] == t['module']:
+                    if i['timestamp'] == t['timestamp']:
+                        self.f += 1
+            if self.f > 0:
+                print(f"{self.f} operation conflict(s) from same module ", end="")
+                print("at same time. Waiting 0.25s for each.")
+                time.sleep(0.25)
+                self.queue.append(t)
+            else:
+                self.queue.append(t)
+            print("State Object queuing... OK ")
+        except Exception as tq:
+            print(f"Failed to queue State Object. Error details:{tq}")
+
+    def makest(self, d):
+        self.dct = d
+
+        try:
+            self.dct.pop('dct')
+            self.dct['timestamp'] = str(datetime.now())
+            self.dct['fields'] = list(self.dct.keys())
+            print("State Object Creation... OK")
+            self.threadqueue(self.dct)
+            if __name__ != "__main__":
+                return self.dct
+        except Exception as mke:
+            print(f"Failed to create state object. Error details:{mke}")
+
+    def readst(self, module=None, fromlast=1):
+        file = open(self.DB, "r")
+        if module == "*":
+            print(f"Printing {fromlast} most recent entries to database:\n")
+            for i in file.readlines()[-1*fromlast:]:
+                print(json.dumps(json.loads(i), indent=4))
+                print()
+            return None
+        else:
+            f = 0
+            for i in file.readlines()[::-1]:
+                dump = json.loads(i)
+                if dump['module'] == module and f == fromlast-1:
+                    if __name__ == '__main__':
+                        print(json.dumps(json.loads(i), indent=4))
+                    return dump
+                elif dump['module'] == module and f < fromlast-1:
+                    f += 1
+            if __name__ == '__main__':
+                print("Not Found")
+            return "Not Found."
+
+    def search(self, criteria, mode="get"):
+        try:
+            if f"{mode} {criteria}" in list(self.cache.keys()):
+                return self.cache[criteria]
+            else:
+                q = open(self.DB, "r").readlines()
+                q2 = []
+                cf = list(criteria.keys())
+
+                must_keys = (criteria["must"].keys()) if "must" in cf else []
+                # may_keys = (criteria["may"].keys()) if "may" in cf else []
+                not_keys = (criteria["not"].keys()) if "not" in cf else []
+
+                line2 = []
+                c = 0
+                c2 = 0
+                for i in range(len(q)):
+                    qk = list(json.loads(q[i]).keys()) if q[i] != "\n" else []
+                    if set(not_keys).issubset(set(qk)):
+                        for nt in not_keys:
+                            if criteria["not"][nt] == json.loads(q[i])[nt]:
+                                c += 1
+                        if c == 0:
+                            q2.append(q[i])
+                    c = 0
+
+                i = 0
+                for i in range(len(q2)):
+                    qk2 = list(json.loads(q2[i]).keys())
+
+                    if set(must_keys).issubset(set(qk2)):
+                        for mst in must_keys:
+                            if criteria["must"][mst] == json.loads(q2[i])[mst]:
+                                c2 += 1
+                        if c2 == len(must_keys):
+
+                            if mode == "get":
+                                line2.append(json.loads(q2[i]))
+                            elif mode == "delete":
+                                line2.append(i)
+                        c2 = 0
+                if len(line2) > 0:
+                    if mode == "get" and __name__ == "__main__":
+                        for l in line2:
+                            print(json.dumps(l, indent=4))
+                        # elif mode == "delete":
+                        #     print(l)
+                    else:
+                        self.doCache({str(criteria): line2})
+                        return line2
+                else:
+                    if __name__ == "__main__":
+                        print("Not found.")
+                    self.doCache({f"{mode} {criteria}": line2})
+                    return []
         except Exception as ex:
-            print(f"\nAn error occured. Details: {ex}\n")
-    else:
-        print("\nDelete operation aborted.\n")
+            print(f"An error occured while getting must fields. Details: {ex}")
+
+    def remove(self, criteria):
+        lef = open(self.DB, "r").readlines()
+        entries_affected = [lef[i] for i in self.search(criteria, mode="delete")]
+        if __name__ == "__main__":
+            print(f"Deleting {len(entries_affected)} entries. Proceed? [Y/N]", end=" ")
+        resp = input() if __name__ == "__main__" else "Y"
+        if resp == "Y" or resp == "y":
+            e = list(set(lef) - set(entries_affected))
+            ef = open(self.DB, "w")
+            try:
+                for i in e:
+                    ef.writelines(i)
+
+            except Exception as ex:
+                print(f"\nAn error occured. Details: {ex}\n")
+        else:
+            print("\nDelete operation aborted.\n")
+
+    def saveobj(self):
+        try:
+            self.__dict__.pop("dct")
+            sdict = self.makest(self.__dict__)
+            savepath = f"{os.path.realpath('.')}\\{self.name}\\state.json"
+            file = open(savepath, "w")
+            file.writelines(json.dumps(sdict))
+        except Exception as serr:
+            print(f"An error was encountered while saving the object. Details: {serr}")
+
+    # def resumeobj(self):
+    #     try:
+
+    #     except:
 
 
 if __name__ == "__main__":
     from os import system, name
-    if name == "nt":
-        _ = system('cls')
-    else:
-        _ = system('clear')
-    while True:
-        try:
-            cd = input("[BarebonesDB] > ").strip()
-            if cd.lower() == "clear" or cd.lower() == "cls":
-                if name == "nt":
-                    _ = system('cls')
-                else:
-                    _ = system('clear')
-            elif cd.lower() in ["exit", "quit", "close", "bye"]:
-                print("Exiting...\n")
-                break
-            elif cd[:cd.find(" ")].lower() == "delete":
-                cmd = ["delete", json.loads(cd[cd.find(" ")+1:])]
-                remove(cmd[1])
-            elif cd[:cd.find(" ")].lower() == "get":
-                if cd[-1] != "}":
-                    cmd = cd.split(" ")
-                    if len(cmd) == 1:
-                        mod = input(" > Enter module name: ")
-                        fl = input(" > Enter the k-th last index: ")
-                    elif len(cmd) == 2:
-                        mod = cmd[1]
-                        fl = "1"
-                    elif len(cmd) == 3:
-                        mod = cmd[1]
-                        fl = cmd[2]
+    cache = 100
+    nm = None
+    test = "True"
+    o = "new"
+
+    def makeobj():
+        global o, cache, test, nm
+        o = input("Make new DB instance or use existing? (default: new) > ").strip()
+        if o == "":
+            o = "new"
+        nm = input("Enter DB name > ").strip()
+        if nm == "":
+            nm = None
+        cache = input("Enter cache size (number of elements). default: 100 > ").strip()
+        if cache == "":
+            cache = 100
+        test = input("Enable Test Database? (True/False) default: True > ").strip()
+        if test.lower() == "true" or test == "":
+            test = True
+        else:
+            test = False
+
+    try:
+        makeobj()
+        global ob
+        ob = BarebonesDB(on=o, createTest=test, name=nm, cacheSize=int(cache))
+
+        # if name == "nt":
+        #     _ = system('cls')
+        # else:
+        #     _ = system('clear')
+        while True:
+            try:
+                cd = input("[BarebonesDB] > ").strip()
+                if cd.lower() == "clear" or cd.lower() == "cls":
+                    if name == "nt":
+                        _ = system('cls')
                     else:
-                        print("[BarebonesDB] > Invalid command! Try again!")
+                        _ = system('clear')
+                elif cd.lower() in ["exit", "quit", "close", "bye"]:
+                    print("Exiting...\n")
+                    break
+                elif cd[:cd.find(" ")].lower() == "delete":
+                    cmd = ["delete", json.loads(cd[cd.find(" ")+1:])]
+                    ob.remove(cmd[1])
+                elif cd[:cd.find(" ")].lower() == "get":
+                    if cd[-1] != "}":
+                        cmd = cd.split(" ")
+                        if len(cmd) == 1:
+                            mod = input(" > Enter module name: ")
+                            fl = input(" > Enter the k-th last index: ")
+                        elif len(cmd) == 2:
+                            mod = cmd[1]
+                            fl = "1"
+                        elif len(cmd) == 3:
+                            mod = cmd[1]
+                            fl = cmd[2]
+                        else:
+                            print("[BarebonesDB] > Invalid command! Try again!")
+                            continue
+                        try:
+                            if fl.isnumeric():
+                                fl = int(fl)
+                            else:
+                                fl = 1
+                            ob.readst(module=mod, fromlast=fl)
+                        except KeyboardInterrupt:
+                            print("\nExecution interrupted from Keyboard. Bye...")
+                            break
+                        except Exception as e:
+                            print(f"\nAn exception occured. Details: {e}")
+                    else:
+                        cmd = [cd[:cd.find(" ")], json.loads(cd[cd.find(" ")+1:])]
+                        ob.search(cmd[1], mode="get")
+                elif cd[:cd.find(" ")].lower() == "add":
+                    cmd = [cd[:cd.find(" ")], cd[cd.find(" ")+1:]]
+                    if len(cmd) == 1:
+                        s = input("[BarebonesDB] > Enter JSON String:  ").rstrip()
+                    elif len(cmd) == 2:
+                        s = cmd[1]
+                    else:
+                        print(len(cmd))
+                        print(cmd)
+                        print("Invalid Syntax. Please check and try again.")
                         continue
                     try:
-                        if fl.isnumeric():
-                            fl = int(fl)
-                        else:
-                            fl = 1
-                        readst(module=mod, fromlast=fl)
-                    except KeyboardInterrupt:
-                        print("\nExecution interrupted from Keyboard. Bye...")
-                        break
+                        jdict = json.loads(s)
+
+                        ob.makest(jdict)
+                        ob.writest()
+                    except json.JSONDecodeError as j:
+                        print("Error while parsing the JSON String.", end="")
+                        print(f"Details: {j.msg}")
+                        print(f"Error encountered at: {j.pos}", end="")
+                        print(f" at line {j.lineno} column {j.colno}")
                     except Exception as e:
-                        print(f"\nAn exception occured. Details: {e}")
-                else:
-                    cmd = [cd[:cd.find(" ")], json.loads(cd[cd.find(" ")+1:])]
-                    search(cmd[1], mode="get")
-            elif cd[:cd.find(" ")].lower() == "add":
-                cmd = [cd[:cd.find(" ")], cd[cd.find(" ")+1:]]
-                if len(cmd) == 1:
-                    s = input("[BarebonesDB] > Enter JSON String:  ").rstrip()
-                elif len(cmd) == 2:
-                    s = cmd[1]
-                else:
-                    print(len(cmd))
-                    print(cmd)
-                    print("Invalid Syntax. Please check and try again.")
+                        print(f"Error while parsing the JSON String. Details: {e}")
+                elif cd == "":
                     continue
-                try:
-                    jdict = json.loads(s)
+                elif cd.lower() == "about":
+                    ob.about()
+                else:
+                    print(f"{cd} is not recognized by BarebonesDB. Try again.")
 
-                    makest(jdict)
-                    writest()
-                except json.JSONDecodeError as j:
-                    print("Error while parsing the JSON String.", end="")
-                    print(f"Details: {j.msg}")
-                    print(f"Error encountered at: {j.pos}", end="")
-                    print(f" at line {j.lineno} column {j.colno}")
-                except Exception as e:
-                    print(f"Error while parsing the JSON String. Details: {e}")
-            elif cd == "":
+                print("\n")
+            except KeyboardInterrupt:
+                print("\nExecution interrupted from Keyboard. Exiting...")
+                break
+            except Exception as E:
+                print(f"A Serious Error was encountered. Error details: {E}")
                 continue
-            elif cd.lower() == "about":
-                about()
-            else:
-                print(f"{cd} is not recognized by BarebonesDB. Try again.")
-
-            print("\n")
-        except KeyboardInterrupt:
-            print("\nExecution interrupted from Keyboard. Exiting...")
-            break
-        except Exception as E:
-            print(f"A Fatal Error was encountered. Error details: {E}")
-            continue
+    except Exception as err:
+        print(f"Fatal Error while initializing Database Instance. BarebonesDB can't start. Details: {err}")

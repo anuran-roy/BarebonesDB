@@ -1,0 +1,5 @@
+barebonesdb-old.py
+.vscode
+.git
+__pycache__
+debug.log
