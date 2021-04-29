@@ -220,24 +220,30 @@ class BarebonesDB:
         to unavoidable problems, should such a dire need arise. Note that it may result in redundant data across databases. So please be 
         careful. Also using it regularly is against the principle of BarebonesDB, that is: One object for one DB.
         '''
-        self.name = db_name
-        self.cacheSize = cacheSize
-        if writechanges:
-            self.writest()
-            self.cache = {}
-        if clearCache:
-            self.cache = {}
-        if clearQueue:
-            self.queue = []
-        if test:
-            self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}_test.json"
-        else:
-            self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}.json"
+        try:
+            self.name = db_name
+            self.cacheSize = cacheSize
+            if writechanges:
+                self.writest()
+                self.cache = {}
+            if clearCache:
+                self.cache = {}
+            if clearQueue:
+                self.queue = []
+            if test:
+                self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}_test.json"
+            else:
+                self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}.json"
+            if __name__ == "__main__":
+                print(f"DB instance is now pointing to {self.DB}")
+        except Exception as e:
+            print(f"An error occured while changing DB pointer. Details: {e.message}")
 
-    # def resumeobj(self):
-    #     try:
-
-    #     except:
+    def resumeobj(self, state_file):
+        try:
+            file = json.loads(open(state_file, "r").readlines())
+        except Exception as ex:
+            print(f"An error occured while trying to load the state from the state file. Details: {ex.message}")
 
 
 if __name__ == "__main__":
