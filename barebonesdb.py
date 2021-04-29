@@ -24,9 +24,9 @@ class BarebonesDB:
                 self.nm = f"{os.path.realpath('.')}\\{self.name}"
                 os.mkdir(self.nm)
                 if createTest:
-                    self.DB = f"{self.nm}\\{self.name}\\{self.name}_test.json"
+                    self.DB = f"{self.nm}\\{self.name}_test.json"
                 else:
-                    self.DB = f"{self.nm}\\{self.name}\\{self.name}.json"
+                    self.DB = f"{self.nm}\\{self.name}.json"
                 file = open(self.DB, "w")
                 file.close()
             elif on.lower().strip() == "existing" and len(self.name.strip()) > 0:
@@ -50,7 +50,8 @@ class BarebonesDB:
 
     def doCache(self, entry):
         if "".join(list(entry.keys())) not in list(self.cache.keys()):
-            self.cache["".join(list(entry.keys()))] = entry["".join(list(entry.keys()))]
+            self.cache["".join(list(entry.keys()))
+                       ] = entry["".join(list(entry.keys()))]
         if len(list(self.cache.keys())) > self.cacheSize:
             self.cache.pop(list(self.cache.keys())[0])
 
@@ -60,10 +61,12 @@ class BarebonesDB:
             for i in range(len(self.queue)):
                 json.dump(self.queue[i], file)
                 file.write("\n")
-            print("Writing Queued State Object... OK")
+            if __name__ == "__main__":
+                print("Writing Queued State Object... OK")
             self.queue = []
         except Exception as wt:
-            print(f"Failed to write Queued State Object to DB. Details: {wt}")
+            print(
+                f"Failed to write Queued State Object to DB. Details: {wt.message}")
 
     def threadqueue(self, t):
         '''Add the state to the thread queue'''
@@ -79,23 +82,25 @@ class BarebonesDB:
                 self.queue.append(t)
             else:
                 self.queue.append(t)
-            print("State Object queuing... OK ")
+            if __name__ == "__main__":
+                print("State Object queuing... OK ")
         except Exception as tq:
-            print(f"Failed to queue State Object. Error details:{tq}")
+            print(f"Failed to queue State Object. Error details:{tq.message}")
 
     def makest(self, d):
         self.dct = d
 
         try:
-            self.dct.pop('dct')
             self.dct['timestamp'] = str(datetime.now())
+            # self.dct.pop('dct')
             self.dct['fields'] = list(self.dct.keys())
             print("State Object Creation... OK")
             self.threadqueue(self.dct)
             if __name__ != "__main__":
                 return self.dct
         except Exception as mke:
-            print(f"Failed to create state object. Error details:{mke}")
+            print(
+                f"Failed to create state object. Error details:{mke.message}")
 
     def readst(self, module=None, fromlast=1):
         file = open(self.DB, "r")
@@ -175,13 +180,16 @@ class BarebonesDB:
                     self.doCache({f"{mode} {criteria}": line2})
                     return []
         except Exception as ex:
-            print(f"An error occured while getting must fields. Details: {ex}")
+            print(
+                f"An error occured while getting must fields. Details: {ex.message}")
 
     def remove(self, criteria):
         lef = open(self.DB, "r").readlines()
-        entries_affected = [lef[i] for i in self.search(criteria, mode="delete")]
+        entries_affected = [lef[i]
+                            for i in self.search(criteria, mode="delete")]
         if __name__ == "__main__":
-            print(f"Deleting {len(entries_affected)} entries. Proceed? [Y/N]", end=" ")
+            print(
+                f"Deleting {len(entries_affected)} entries. Proceed? [Y/N]", end=" ")
         resp = input() if __name__ == "__main__" else "Y"
         if resp == "Y" or resp == "y":
             e = list(set(lef) - set(entries_affected))
@@ -191,7 +199,7 @@ class BarebonesDB:
                     ef.writelines(i)
 
             except Exception as ex:
-                print(f"\nAn error occured. Details: {ex}\n")
+                print(f"\nAn error occured. Details: {ex.message}\n")
         else:
             print("\nDelete operation aborted.\n")
 
@@ -203,7 +211,28 @@ class BarebonesDB:
             file = open(savepath, "w")
             file.writelines(json.dumps(sdict))
         except Exception as serr:
-            print(f"An error was encountered while saving the object. Details: {serr}")
+            print(
+                f"An error was encountered while saving the object. Details: {serr.message}")
+
+    def switchdb(self, db_name, test=True, clearQueue=True, clearCache=True, cacheSize=100, writechanges=False):
+        '''
+        This method is not recommmended, since it bypasses a lot of methodical operations and is is intended to be a last-resort dirty fix
+        to unavoidable problems, should such a dire need arise. Note that it may result in redundant data across databases. So please be 
+        careful. Also using it regularly is against the principle of BarebonesDB, that is: One object for one DB.
+        '''
+        self.name = db_name
+        self.cacheSize = cacheSize
+        if writechanges:
+            self.writest()
+            self.cache = {}
+        if clearCache:
+            self.cache = {}
+        if clearQueue:
+            self.queue = []
+        if test:
+            self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}_test.json"
+        else:
+            self.DB = f"{os.path.realpath('.')}\\{self.name}\\{self.name}.json"
 
     # def resumeobj(self):
     #     try:
@@ -226,10 +255,12 @@ if __name__ == "__main__":
         nm = input("Enter DB name > ").strip()
         if nm == "":
             nm = None
-        cache = input("Enter cache size (number of elements). default: 100 > ").strip()
+        cache = input(
+            "Enter cache size (number of elements). default: 100 > ").strip()
         if cache == "":
             cache = 100
-        test = input("Enable Test Database? (True/False) default: True > ").strip()
+        test = input(
+            "Enable Test Database? (True/False) default: True > ").strip()
         if test.lower() == "true" or test == "":
             test = True
         else:
@@ -283,14 +314,17 @@ if __name__ == "__main__":
                             print("\nExecution interrupted from Keyboard. Bye...")
                             break
                         except Exception as e:
-                            print(f"\nAn exception occured. Details: {e}")
+                            print(
+                                f"\nAn exception occured. Details: {e.message}")
                     else:
-                        cmd = [cd[:cd.find(" ")], json.loads(cd[cd.find(" ")+1:])]
+                        cmd = [cd[:cd.find(" ")], json.loads(
+                            cd[cd.find(" ")+1:])]
                         ob.search(cmd[1], mode="get")
                 elif cd[:cd.find(" ")].lower() == "add":
                     cmd = [cd[:cd.find(" ")], cd[cd.find(" ")+1:]]
                     if len(cmd) == 1:
-                        s = input("[BarebonesDB] > Enter JSON String:  ").rstrip()
+                        s = input(
+                            "[BarebonesDB] > Enter JSON String:  ").rstrip()
                     elif len(cmd) == 2:
                         s = cmd[1]
                     else:
@@ -308,8 +342,12 @@ if __name__ == "__main__":
                         print(f"Details: {j.msg}")
                         print(f"Error encountered at: {j.pos}", end="")
                         print(f" at line {j.lineno} column {j.colno}")
+                    except AttributeError:
+                        print(
+                            "Attribute Error triggered from makest() or writest(). Cannot get attribute.")
                     except Exception as e:
-                        print(f"Error while parsing the JSON String. Details: {e}")
+                        print(
+                            f"Error while parsing the JSON String. Details: {e.message}")
                 elif cd == "":
                     continue
                 elif cd.lower() == "about":
@@ -325,4 +363,5 @@ if __name__ == "__main__":
                 print(f"A Serious Error was encountered. Error details: {E}")
                 continue
     except Exception as err:
-        print(f"Fatal Error while initializing Database Instance. BarebonesDB can't start. Details: {err}")
+        print(
+            f"Fatal Error while initializing Database Instance. BarebonesDB can't start. Details: {err}")
