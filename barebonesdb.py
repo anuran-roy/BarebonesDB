@@ -239,11 +239,14 @@ class BarebonesDB:
         except Exception as e:
             print(f"An error occured while changing DB pointer. Details: {e.message}")
 
-    def resumeobj(self, state_file):
-        try:
-            file = json.loads(open(state_file, "r").readlines())
-        except Exception as ex:
-            print(f"An error occured while trying to load the state from the state file. Details: {ex.message}")
+    # def resumeobj(self, state_file):
+    #     try:
+    #         file = open(state_file, "r").readlines()
+    #         file = list(set(file) - set([i for i in file where i == '\n']))
+    #         file = "".join(file)
+    #         dc = json.loads(file)
+    #     except Exception as ex:
+    #         print(f"An error occured while trying to load the state from the state file. Details: {ex.message}")
 
 
 if __name__ == "__main__":
