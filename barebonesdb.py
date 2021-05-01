@@ -82,7 +82,7 @@ class BarebonesDB:
             print(f"An error occurred in makeIndex. Details: {makeindexError.message}")
             self.actioncode = -1
 
-    def indexchecker(self, query):
+    def indexExists(self, query):
         try:
             if self.indexloc != "" and os.path.exists(self.indexloc):
 
@@ -97,7 +97,26 @@ class BarebonesDB:
         except OSError as ose:
             print(f"An OSerror occured from __init__(). Details: {ose}")
         except Exception as e:
-            print(f"Exception occured at indexchecker(). Details: {e}")
+            print(f"Exception occured at indexExists(). Details: {e}")
+
+    def enumerator(self,toCheck):
+        enum = []
+        ienum = []
+        if self.indexloc != "":
+            for i in list(toCheck.keys()):
+                for j in list(i.keys()):
+                    enum.append(j)
+
+            for k in list(json.loads(open(self.indexloc,"r").read()).keys()):
+                for l in list(k.keys()):
+                    ienum.append(l)
+
+            if set(enum).issubset(set(ienum)):
+                return True
+            else:
+                return False
+        else:
+            return None            
 
     def about(self):
         try:
@@ -172,7 +191,7 @@ class BarebonesDB:
             self.dct = d
             self.dct['timestamp'] = str(datetime.now())
             self.dct['fields'] = list(self.dct.keys())
-            if self.indexchecker(self.dct) is True or self.indexchecker(self.dct) is None:
+            if self.indexExists(self.dct) is True or self.indexExists(self.dct) is None:
                 print("State Object Creation... OK")
                 self.threadqueue(self.dct)
                 self.actioncode = 1
@@ -231,7 +250,7 @@ class BarebonesDB:
             if f"{mode} {criteria}" in list(self.cache.keys()):
                 self.actioncode = 1
                 return self.cache[criteria]
-            elif (self.indexchecker(self.dct) is True or self.indexchecker(self.dct) is None) and list(criteria):
+            elif self.enumerator(self.dct) is True or self.enumerator(self.dct) is None:  #) and list(criteria):
                 q = open(self.DB, "r").readlines()
                 q2 = []
                 cf = list(criteria.keys())
