@@ -22,6 +22,7 @@ class BarebonesDB:
         self.name = name
         self.actioncode = 0
         self.indexloc = ""
+        self.DB = ""
         try:
             on = on.strip()
             if on == "new":
@@ -66,7 +67,7 @@ class BarebonesDB:
 
         return indexdict
 
-    def makeindex(self, sample):
+    def makeIndex(self, sample):
         idict = self.indexer(sample)
         try:
             if not os.path.exists(self.indexloc):
@@ -77,9 +78,9 @@ class BarebonesDB:
                 print("Index already exists.")
                 self.actioncode = -1
         except OSError as ose:
-            print(f"An OSerror occured from makeindex(). Details: {ose}")
-        except Exception as makeindexError:
-            print(f"An error occurred in makeIndex. Details: {makeindexError.message}")
+            print(f"An OSerror occured from makeIndex(). Details: {ose}")
+        except Exception as makeIndexError:
+            print(f"An error occurred in makeIndex. Details: {makeIndexError.message}")
             self.actioncode = -1
 
     def indexExists(self, query):
@@ -191,7 +192,7 @@ class BarebonesDB:
             self.dct = d
             self.dct['timestamp'] = str(datetime.now())
             self.dct['fields'] = list(self.dct.keys())
-            if self.indexExists(self.dct) is True or self.indexExists(self.dct) is None:
+            if self.enumerator(self.dct) is True or self.enumerator(self.dct) is None:
                 print("State Object Creation... OK")
                 self.threadqueue(self.dct)
                 self.actioncode = 1
@@ -240,9 +241,9 @@ class BarebonesDB:
             print("AttributeError triggered from readEntry")
             self.actioncode = -1
         except OSError as ose:
-            print(f"An OSerror occured from makeEntry(). Details: {ose}")
-        except Exception as makeEntryError:
-            print(f"makeEntryError: An error occurred. Details: {makeEntryError}")
+            print(f"An OSerror occured from readEntry(). Details: {ose}")
+        except Exception as readEntryError:
+            print(f"readEntryError: An error occurred. Details: {readEntryError}")
             self.actioncode = -1
 
     def search(self, criteria, mode="get"):
