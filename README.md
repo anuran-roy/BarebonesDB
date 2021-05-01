@@ -61,3 +61,7 @@ Example syntax:
   YES, that's the fun part! You can now have variable cache sizes for different purposes!
 
   **For a simple test run, you can run execute test.py**
+
+## Under Development:
+
+1. Indexing: Suggested by ![th3c0d3br34ker](https://github.com/th3c0d3br34ker), I realised it'll be good to allow users to enforce data consistency. 
